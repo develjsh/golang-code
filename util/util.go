@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"go.uber.org/zap/zapcore"
@@ -18,4 +19,17 @@ func KstTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 func GetLogFileName() string {
 	today := time.Now().Format("2006-01-02")
 	return fmt.Sprintf("logs/%s-1.log", today)
+}
+
+// GetNextLogFileName는 파일 크기 체크 후 파일 이름을 순차적으로 변경
+func GetNextLogFileName(baseName string) string {
+	for i := 2; i <= 5; i++ {
+		filename := fmt.Sprintf("%s-%d.log", baseName, i)
+		if _, err := os.Stat(filename); os.IsNotExist(err) {
+			return filename
+		}
+	}
+
+	// 모든 파일이 존재하면 첫 번째 파일을 덮어씀
+	return fmt.Sprintf("%s-1.log", baseName)
 }
