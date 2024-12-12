@@ -33,3 +33,26 @@ func GetNextLogFileName(baseName string) string {
 	// 모든 파일이 존재하면 첫 번째 파일을 덮어씀
 	return fmt.Sprintf("%s-1.log", baseName)
 }
+
+// 로그 파일이 100MB 이상인 경우 파일을 롤링
+func CheckLogFileSizeAndRoll(file *os.File, baseName string) (*os.File, error) {
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	if fileInfo.Size() > 100*1024*1024 { // 100MB 초과
+		// 파일 이름을 순차적으로 변경
+		newFileName := getNextLogFileName(baseName)
+		newFile, err := os.OpenFile(newFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open log file: %v", err)
+		}
+
+		// 기존 파일을 닫고 새로운 파일로 교체
+		file.Close()
+		return newFile, nil
+	}
+
+	return file, nil
+}
