@@ -56,3 +56,14 @@ func CheckLogFileSizeAndRoll(file *os.File, baseName string) (*os.File, error) {
 
 	return file, nil
 }
+
+// 디렉토리가 없는 경우 생성
+func CreateLogDirectory() error {
+	if _, err := os.Stat("logs"); os.IsNotExist(err) {
+		err := os.MkdirAll("logs", 0755)
+		if err != nil {
+			return fmt.Errorf("failed to create log directory: %v", err)
+		}
+	}
+	return nil
+}
