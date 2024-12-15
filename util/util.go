@@ -1,8 +1,10 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"time"
 
 	"go.uber.org/zap/zapcore"
@@ -66,4 +68,45 @@ func CreateLogDirectory() error {
 		}
 	}
 	return nil
+}
+
+// 재귀적으로 JSON 데이터를 평탄화 1-1
+func FlattenJSON(input string) (map[string]string, error) {
+	var jsonData map[string]interface{}
+	if err := json.Unmarshal([]byte(input), &jsonData); err != nil {
+		return nil, err
+	}
+
+	flatMap := make(map[string]string)
+	flatten(jsonData, "", &flatMap)
+	return flatMap, nil
+}
+
+// 재귀적으로 JSON 데이터를 평탄화 1-2
+func flatten(data map[string]interface{}, prefix string, result *map[string]string) {
+	for key, value := range data {
+		fullKey := key
+		if prefix != "" {
+			fullKey = prefix + "." + key
+		}
+
+		// null 또는 nil 값 처리
+		if value == nil {
+			(*result)[fullKey] = "" // 빈 문자열로 설정
+			continue
+		}
+
+		v := reflect.ValueOf(value)
+		switch v.Kind() {
+		case reflect.Map:
+			flatten(value.(map[string]interface{}), fullKey, result)
+		case reflect.Slice:
+			for i, elem := range value.([]interface{}) {
+				arrayKey := fmt.Sprintf("%s[%d]", fullKey, i)
+				flatten(map[string]interface{}{"": elem}, arrayKey, result)
+			}
+		default:
+			(*result)[fullKey] = fmt.Sprintf("%v", value)
+		}
+	}
 }
