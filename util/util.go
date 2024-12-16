@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"sync"
 	"time"
 
 	"go.uber.org/zap/zapcore"
@@ -109,4 +110,34 @@ func flatten(data map[string]interface{}, prefix string, result *map[string]stri
 			(*result)[fullKey] = fmt.Sprintf("%v", value)
 		}
 	}
+}
+
+// 시간 측정
+// ManageWaitGroup 실행 go ManageWaitGroup()
+// 작업 데이터 전송 timeElapsedChannel <- "Snitcher"
+// 완료 신호 대기 <-done
+var (
+	timeElapsedChannel = make(chan string)
+	done               = make(chan struct{})
+)
+func ManageWaitGroup() {
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// CheckElapsedTime 실행
+	go CheckElapsedTime(&wg)
+
+	// WaitGroup 대기 및 완료 알림
+	wg.Wait()
+	close(done) // 완료 신호
+	fmt.Println("ManageWaitGroup tasks processed.")
+}
+func CheckElapsedTime(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	startTime := time.Now()
+
+	// 작업 시간 측정
+	elapsed := <-timeElapsedChannel
+	fmt.Printf("Elapsed time for task %s: %s\n", elapsed, time.Since(startTime))
 }
